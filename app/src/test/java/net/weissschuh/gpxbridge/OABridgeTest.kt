@@ -12,7 +12,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
-import org.robolectric.shadows.ShadowAsyncTask
+import org.robolectric.shadows.ShadowPausedAsyncTask
 import java.io.File
 
 @Implements(FileProvider::class)
@@ -30,7 +30,7 @@ class FileProviderShadow {
 }
 
 @Implements(OABridge.Downloader::class)
-class DownloaderShadow() : ShadowAsyncTask<Int, Void, File>() {
+class DownloaderShadow() : ShadowPausedAsyncTask<Int, Void, File>() {
 
     @Implementation
     fun doInBackground(vararg params: Int?): File? {
@@ -54,13 +54,13 @@ class OABridgeTest {
                 .path("1550935")
                 .build()
         assertNotSame("application/gpx+xml", intent.type)
-        val activity = Robolectric.buildActivity(OABridge::class.java, intent).create().get()
+        val activity = Robolectric.buildActivity(OABridge::class.java, intent).setup().get()
         val sentIntent = activity.sentIntent
         assertNotNull(sentIntent)
         sentIntent!!
 
         assertEquals("application/gpx+xml", sentIntent.type)
-        sentIntent.data.apply {
+        sentIntent.data!!.apply {
             assertEquals("content", scheme)
             assertEquals("foo.gpx", lastPathSegment)
         }

@@ -28,7 +28,13 @@ open class OABridge : Activity() {
             return
         }
 
-        val tourId = Integer.valueOf(tourUri.lastPathSegment)
+        val lastPathSegment = tourUri.lastPathSegment
+
+        if (lastPathSegment == null) {
+            return
+        }
+
+        val tourId = Integer.valueOf(lastPathSegment)
         val gpxDir = File(cacheDir, "gpx")
         gpxDir.mkdirs()
         Downloader(gpxDir).execute(tourId)
