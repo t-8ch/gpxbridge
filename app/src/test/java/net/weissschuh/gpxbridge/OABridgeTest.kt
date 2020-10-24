@@ -30,7 +30,7 @@ class FileProviderShadow {
 }
 
 @Implements(OABridge.Downloader::class)
-class DownloaderShadow() : ShadowPausedAsyncTask<Int, Void, File>() {
+class DownloaderShadow : ShadowPausedAsyncTask<Int, Void, File>() {
 
     @Implementation
     fun doInBackground(vararg params: Int?): File? {
@@ -42,7 +42,7 @@ class DownloaderShadow() : ShadowPausedAsyncTask<Int, Void, File>() {
 
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest= Config.NONE,
-        shadows=arrayOf(FileProviderShadow::class, DownloaderShadow::class))
+        shadows= [FileProviderShadow::class, DownloaderShadow::class])
 class OABridgeTest {
 
     @Test

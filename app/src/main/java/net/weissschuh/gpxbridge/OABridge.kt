@@ -16,7 +16,7 @@ import javax.mail.internet.ContentDisposition
 import javax.net.ssl.HttpsURLConnection
 
 open class OABridge : Activity() {
-    val TAG = OABridge::class.java.simpleName
+    companion object val TAG = OABridge::class.java.simpleName
     var sentIntent : Intent? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,11 +28,7 @@ open class OABridge : Activity() {
             return
         }
 
-        val lastPathSegment = tourUri.lastPathSegment
-
-        if (lastPathSegment == null) {
-            return
-        }
+        val lastPathSegment = tourUri.lastPathSegment ?: return
 
         val tourId = Integer.valueOf(lastPathSegment)
         val gpxDir = File(cacheDir, "gpx")
@@ -42,16 +38,16 @@ open class OABridge : Activity() {
     }
 
     fun sendIntent(content: File) {
-        val intent = Intent();
-        intent.action = Intent.ACTION_VIEW
-        intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION;
+        val intent = Intent().also {
+            it.action = Intent.ACTION_VIEW
+            it.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+            it.setDataAndType(
+                    FileProvider.getUriForFile(this, "net.weissschuh.gpxbridge.fileprovider", content),
+                    "application/gpx+xml"
+            )
+        }
 
-        intent.setDataAndType(
-                FileProvider.getUriForFile(this, "net.weissschuh.gpxbridge.fileprovider", content),
-                "application/gpx+xml"
-        )
-
-        Log.d(TAG, "Sending intent ${intent}")
+        Log.d(TAG, "Sending intent $intent")
         sentIntent = intent
 
         if (intent.resolveActivity(packageManager) != null) {
@@ -62,14 +58,15 @@ open class OABridge : Activity() {
     }
 
     @SuppressLint("StaticFieldLeak")
-    inner class Downloader(val gpxDir: File) : AsyncTask<Int, Void, File>() {
+    inner class Downloader(private val gpxDir: File) : AsyncTask<Int, Void, File>() {
+        private val TAG = Downloader::class.java.simpleName
         private fun warn(text: String) {
-            Log.w(TAG, text)
-            showToast(text, Toast.LENGTH_LONG)
+            Log.w(TAG, "Sending toast: $text")
+            showToast(text)
         }
-        private fun showToast(text: String, duration: Int = Toast.LENGTH_SHORT) {
+        private fun showToast(text: String) {
             runOnUiThread {
-                val toast = Toast.makeText(applicationContext, text, duration)
+                val toast = Toast.makeText(applicationContext, text, Toast.LENGTH_LONG)
                 toast.show()
             }
         }
@@ -86,7 +83,7 @@ open class OABridge : Activity() {
                 val path = createTempDir("gpxpath-", "-" + tourId.toString(), gpxDir)
 
                 val url = URL(uri.toString())
-                Log.d(TAG, "Retrieving ${uri}")
+                Log.d(TAG, "Retrieving $uri")
                 val conn = url.openConnection() as HttpsURLConnection
                 conn.connect()
 
@@ -99,9 +96,9 @@ open class OABridge : Activity() {
                 val filename = extractFileName(conn) ?: tourId.toString() + ".gpx"
 
                 val output = File(path, filename)
-                Log.d(TAG, "writing to ${output}")
+                Log.d(TAG, "writing to $output")
 
-                conn.getInputStream().use { input ->
+                conn.inputStream.use { input ->
                     output.outputStream().use {
                         input.copyTo(it)
                     }
