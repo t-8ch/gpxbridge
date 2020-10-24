@@ -9,11 +9,15 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
 import org.robolectric.shadows.ShadowPausedAsyncTask
+import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.InputStream
+import java.nio.charset.StandardCharsets
 
 @Implements(FileProvider::class)
 class FileProviderShadow {
@@ -30,19 +34,22 @@ class FileProviderShadow {
 }
 
 @Implements(OABridge.Downloader::class)
-class DownloaderShadow : ShadowPausedAsyncTask<Int, Void, File>() {
+internal class DownloaderShadow : ShadowPausedAsyncTask<Int, OABridge.Downloader.Downloaded, Unit>() {
+    @Implementation
+    fun downloadTour(tourId: Int): Pair<String?, InputStream>? {
+        assertEquals(1550935, tourId)
+        return null to ByteArrayInputStream("".toByteArray(StandardCharsets.UTF_8))
+    }
 
     @Implementation
-    fun doInBackground(vararg params: Int?): File? {
-        assertEquals(1, params.size)
-        assertEquals(1550935, params[0])
-        return File("/foo/1550935.gpx")
+    fun shouldSendIntent(intent: Intent): Boolean {
+        return true
     }
 }
 
 @RunWith(RobolectricTestRunner::class)
-@Config(manifest= Config.NONE,
-        shadows= [FileProviderShadow::class, DownloaderShadow::class])
+@Config(manifest = Config.NONE,
+        shadows = [FileProviderShadow::class, DownloaderShadow::class])
 class OABridgeTest {
 
     @Test
@@ -55,7 +62,7 @@ class OABridgeTest {
                 .build()
         assertNotSame("application/gpx+xml", intent.type)
         val activity = Robolectric.buildActivity(OABridge::class.java, intent).setup().get()
-        val sentIntent = activity.sentIntent
+        val sentIntent = Shadows.shadowOf(activity.application).nextStartedActivity
         assertNotNull(sentIntent)
         sentIntent!!
 
